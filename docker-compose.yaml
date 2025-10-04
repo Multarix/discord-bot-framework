@@ -9,15 +9,8 @@
 # https://github.com/docker/awesome-compose
 services:
   bot:
-    container_name: assistant-dm-bot
+    container_name: discord-bot
     build: .
-    image: assistant-dm-bot:latest
+    image: discord-bot:latest
     restart: on-failure
     platform: linux/arm64/v8
-    volumes:
-       - assistant-volume:/usr/src/app/data
-    
-volumes:
-    assistant-volume:
-      name: assistant-volume
-  

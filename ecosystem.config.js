@@ -1,4 +1,5 @@
 module.exports = {
+	// This file is for use with pm2 (Process Manager 2)
 	apps : [{
 		name: "bot",
 		script: "./bot.js",

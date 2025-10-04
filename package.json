@@ -1,0 +1,27 @@
+{
+	"type": "module",
+	"scripts": {
+		"start": "node bot.js",
+		"build": "docker buildx build -t assistant-dm . --platform linux/arm64/v8",
+		"predocker": "npm run build",
+		"docker": "docker compose up --build -d",
+		"presave": "npm run build",
+		"save": "docker save assistant-dm -o ./bot.tar"
+	},
+	"dependencies": {
+		"colors": "^1.4.0",
+		"discord.js": "^14.9.0",
+		"dotenv": "^16.5.0",
+		"node-cron": "^4.0.7",
+		"node-fetch": "^3.3.1"
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.25.1",
+		"@eslint/json": "^0.13.2",
+		"@stylistic/eslint-plugin": "^4.4.1",
+		"@stylistic/eslint-plugin-migrate": "^4.2.0",
+		"eslint": "^9.36.0",
+		"globals": "^16.0.0",
+		"typescript": "^5.9.3"
+	}
+}

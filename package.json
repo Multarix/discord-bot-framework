@@ -1,7 +1,9 @@
 {
 	"type": "module",
 	"scripts": {
+		"prestart": "tsc",
 		"start": "node build/bot.js",
+		"prebuild": "tsc",
 		"build": "docker buildx build -t assistant-dm ./build --platform linux/arm64/v8",
 		"predocker": "npm run build",
 		"docker": "docker compose up --build -d",

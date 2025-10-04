@@ -80,7 +80,7 @@ const main = async () => {
 	output(client, "misc", "Loading events...");
 
 	// Find the event with the longest name
-	const eventList = fs.readdirSync("./events").filter(file => file.endsWith(".js")).sort((a, b) => a.length - b.length);
+	const eventList = fs.readdirSync(`./build/events`).filter(file => file.endsWith(".js")).sort((a, b) => a.length - b.length);
 	let longestName = eventList[eventList.length - 1].length - 3;
 
 	for(const file of eventList){
@@ -110,7 +110,7 @@ const main = async () => {
 	output(client, "misc", "Loading commands...");
 
 	// Find the command with the longest name
-	const commandList = fs.readdirSync("./commands").filter(file => file.endsWith(".js") || file.endsWith(".cjs")).sort((a, b) => a.length - b.length);
+	const commandList = fs.readdirSync(`./build/commands`).filter(file => file.endsWith(".js") || file.endsWith(".cjs")).sort((a, b) => a.length - b.length);
 	longestName = commandList[commandList.length - 1].length - 3;
 
 	for(const file of commandList){

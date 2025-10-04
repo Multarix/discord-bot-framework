@@ -20,7 +20,7 @@ const presenceDecode: PressenceDecode = {
 
 
 /**
- * @name ready
+ * @name clientReady
  * @param {DiscordClient} client The discord client
  * @description Emitted when the client becomes ready to start working.
  * @returns {Promise<void>}
@@ -41,7 +41,7 @@ async function run(client: DiscordClient): Promise<void> {
 
 
 const info = {
-	name: "ready",
+	name: "clientReady",
 	description: "Emitted when the client becomes ready to start working.",
 	enabled: true
 };

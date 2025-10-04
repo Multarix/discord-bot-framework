@@ -1,25 +1,25 @@
-import { Config, SlashData, Command, DiscordClient } from "./types/typings.js";
-
 import fs from "fs";
-
 import { GatewayIntentBits, Partials, MessageMentionOptions } from "discord.js";
 import colors from "colors";
-
 import { output } from "./src/functions.js";
-
 
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
 import dotenv from "dotenv";
-dotenv.config();
+import { Config, SlashData, Command, DiscordClient } from "./types/typings.js";
 
+// We set the instances's timezone to UTC+0 cause we're not fucking morons
+// You should ALWAYS be set to UTC+0. If you don't, you're a shitty developer.
+process.env.TZ = "Etc/UTC";
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 if(!process.env.token) throw new Error("No token was supplied. please supply a token and restart.");
 if(!process.env.timezone) throw new Error("No Timezone was supplied. Please supply a timezone and restart.");
+if(new Date().getTimezoneOffset() !== 0) throw new Error("Your device is set up incorrectly. Please change your devices timezone to UTC+0");
 
 
 // Load the config
@@ -33,7 +33,7 @@ const config: Config = {
 
 console.log(`Setting prefix to ${config.prefix}`);
 console.log(`Setting ownerID to ${config.ownerID}`);
-console.log(`Setting timezone to ${config.timezone}`);
+console.log(`Setting logs timezone to ${config.timezone}`);
 
 // Handle the unhandled things
 process.on("uncaughtException", (err) => {

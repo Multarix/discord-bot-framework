@@ -39,6 +39,7 @@ interface TimeObject {
 
 /**
  * @name timeFormat
+ * @param {string} timeZone
  * @param {Date} [dateTime] The date object to be used, defaults to the current time
  * @returns {timeObject} An object containing the time in different formats
  * @description Returns the time in different formats

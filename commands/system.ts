@@ -1,26 +1,18 @@
-import Discord, { Client, Message, EmbedBuilder } from "discord.js";
+import { CommandInfo, DiscordClient } from "../types/typings.js";
+import { version, Message, EmbedBuilder, ClientUser } from "discord.js";
 import os from "os";
 import { humanTime } from "../src/functions.js";
 
-const { version } = Discord;
-
-/**
- * @name system
- * @param {Client} client The discord client
- * @param {Message} element The message or interaction that was created
- * @param {String[]} [_args] The arguments passed to the command
- * @returns {Promise<void>}
-**/
-async function run(client, element, _args = []){
-
-	const duration = humanTime(client.uptime, "\\Ddays, \\Hhrs, \\mmins, \\ssecs");
+async function run(client: DiscordClient, element: Message, _args: string[] = []) { // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
+	const clientUser = client.user as ClientUser;
+	const duration = humanTime(client.uptime as number, "\\Ddays, \\Hhrs, \\mmins, \\ssecs");
 
 	const cpuType = os.cpus()[0].model.split(/\s+/g).join(" ");
 	const embed = new EmbedBuilder()
 		.setAuthor({ name: "System Information" })
 		.setColor(13238272)
-		.setThumbnail(client.user.displayAvatarURL())
-		.setFooter({ text: client.user.username, iconURL: client.user.displayAvatarURL() })
+		.setThumbnail(clientUser.displayAvatarURL())
+		.setFooter({ text: clientUser.username, iconURL: clientUser.displayAvatarURL() })
 		.setTimestamp();
 
 	const embedFields = [
@@ -39,7 +31,7 @@ async function run(client, element, _args = []){
 	return element.reply({ embeds: [embed] });
 }
 
-const info = {
+const info: CommandInfo = {
 	name: "system",
 	altNames: ["sys", "sysinfo"],
 	description: "Lists information about the system the bot is running on",
@@ -51,13 +43,7 @@ const info = {
 };
 
 
-/**
- * @name slash
- * @param {Client} client The discord client
- * @param {Boolean} [funcs] Whether to return the functions or the data
- * @returns {Object} The slash command data or functions
-**/
-function slash(client, funcs = false){
+function slash(client: DiscordClient, funcs: boolean = false) { // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
 	// if(!funcs){ // We want to get the slash command data
 	// 	return {
 	// 		data: new SlashCommandBuilder()
@@ -68,12 +54,7 @@ function slash(client, funcs = false){
 	// }
 
 	return {
-		/**
-		 * @name execute
-		 * @param {ChatInputCommandInteraction} interaction The interaction that was created
-		 * @description The function that is called when the slash command is used
-		**/
-		execute: async function execute(interaction){
+		execute: async function execute(interaction: Message) {
 			await run(client, interaction);
 		}
 	};

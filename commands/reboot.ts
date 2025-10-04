@@ -1,17 +1,10 @@
-import { Client, Message } from "discord.js";
+import { CommandInfo, DiscordClient } from "../types/typings.js";
+import { Message } from "discord.js";
 import { output } from "../src/functions.js";
 
 
-/**
- * @name reboot
- * @param {Client} client The discord client
- * @param {Message} element The message or interaction that was created
- * @param {String[]} [_args] The arguments passed to the command
- * @returns {Promise<void>}
-**/
-async function run(client, element, _args = []){
-	let good = client.emojis.cache.get("340357918996299778");
-	if(!good) good = "👍";
+async function run(client: DiscordClient, element: Message, _args: string[] = []) { // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
+	const good = client.emojis.cache.get("340357918996299778") || "👍";
 
 	output(client, "misc", "Perfmorming manual reboot...");
 	await element.react(good);
@@ -20,7 +13,7 @@ async function run(client, element, _args = []){
 }
 
 
-const info = {
+const info: CommandInfo = {
 	name: "reboot",
 	altNames: ["restart"],
 	description: "Restarts the bot",
@@ -32,13 +25,8 @@ const info = {
 };
 
 
-/**
- * @name slash
- * @param {Client} client The discord client
- * @param {Boolean} [funcs] Whether to return the functions or the data
- * @returns {Object} The slash command data or functions
-**/
-function slash(client, funcs = false){
+
+function slash(client: DiscordClient, _funcs: boolean = false) { // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
 	// if(!funcs){ // We want to get the slash command data
 	// 	return {
 	// 		data: new SlashCommandBuilder()
@@ -49,12 +37,7 @@ function slash(client, funcs = false){
 	// }
 
 	return {
-		/**
-		 * @name execute
-		 * @param {ChatInputCommandInteraction} interaction The interaction that was created
-		 * @description The function that is called when the slash command is used
-		**/
-		execute: async function execute(interaction){
+		execute: async function execute(interaction: Message) {
 			await run(client, interaction);
 		}
 	};

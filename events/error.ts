@@ -1,7 +1,8 @@
 import { output } from "../src/functions.js";
+import { DiscordClient } from "../types/typings.js";
 
 
-async function run(_client, error){
+async function run(client: DiscordClient, error: unknown) {
 	output(client, "error", `${error}`);
 }
 

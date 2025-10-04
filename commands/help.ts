@@ -1,61 +1,62 @@
-import { SlashCommandBuilder, Client, Message, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import { CommandInfo, DiscordClient } from "../types/typings.js";
+import { SlashCommandBuilder, Message, ClientUser, ChatInputCommandInteraction, EmbedBuilder, ColorResolvable, GuildMemberRoleManager, InteractionContextType, TextBasedChannel } from "discord.js";
 import { permLevel, handleElement, caseFix } from "../src/functions.js";
 
 
-/**
- * @name help
- * @param {Client} client The discord client
- * @param {Message|ChatInputCommandInteraction} element The message or interaction that was created
- * @param {String[]} [args] The arguments passed to the command
- * @returns {Promise<void>}
-**/
-async function run(client, element, args = []){
-
-	const isSlashCommand = (element instanceof ChatInputCommandInteraction) ? true : false;
+async function run(client: DiscordClient, element: Message | ChatInputCommandInteraction, args: string[] = []) {
+	const clientUser = client.user as ClientUser;
+	const isSlashCommand = (element instanceof ChatInputCommandInteraction);
+	const user = isSlashCommand ? element.user : element.author;
 	// if(isSlashCommand) await element.deferReply({ ephemeral: true }); // Don't need deferred here
 
-	const user = isSlashCommand ? element.user : element.author;
 
 	// Set up the Embed
 	const embed = new EmbedBuilder()
-		.setFooter({ text: client.user.username, iconURL: client.user.displayAvatarURL() })
+		.setFooter({ text: clientUser.username, iconURL: clientUser.displayAvatarURL() })
 		.setTimestamp();
 
 	// const iconURL = element?.guild?.iconURL();
 	// if(iconURL) embed.setThumbnail(iconURL);
 
-	let embedColor = false;
-	if(element.member?.roles?.highest?.color) embedColor = element.member.roles.highest.color;
-	if(embedColor) embed.setColor(embedColor);
+	if(element.member?.roles){
+		let embedColor: ColorResolvable | null = null;
+		const roles = element.member.roles as GuildMemberRoleManager;
+		if(roles.highest?.colors) embedColor = roles.highest.colors.primaryColor;
+		if(embedColor) embed.setColor(embedColor);
+	}
 
-	const userPermLevel = permLevel(client, user, element.channel);
+
+	const userPermLevel = permLevel(client, user, element.channel as TextBasedChannel);
 
 	// if args[0] is a command, show the command's info (assuming the user has permission to do so)
 	if(args[0]){
-		const command = client.commands.get(args[0]) || client.commands.get(client.aliases.get(args[0]));
-		const permissionToRun = (command.info.permLevel <= userPermLevel);
+		const altName = client.altNames.get(args[0]);
+		const command = (altName) ? client.commands.get(altName) : client.commands.get(args[0]);
 
-		if(command && command.info.enabled && permissionToRun){
-			const prefix = client.config.prefix;
+		if(command){
+			const permissionToRun = (command.info.permLevel <= userPermLevel);
+			if(command.info.enabled && permissionToRun){
+				const prefix = client.config?.prefix;
 
-			const title = caseFix(command.info.name);
-			const category = caseFix(command.info.category);
+				const title = caseFix(command.info.name);
+				const category = caseFix(command.info.category);
 
-			let aliasNames = "";
-			if(command.info.altNames.length) aliasNames = command.info.altNames.join("`, `");
-			const aliases = `\`${aliasNames}\``;
-			const usage = `${prefix}${command.info.usage}`;
-			const usageField = "\nExample Usage:\n```fix\n" + usage + "```";
+				let aliasNames = "";
+				if(command.info.altNames.length) aliasNames = command.info.altNames.join("`, `");
+				const aliases = `\`${aliasNames}\``;
+				const usage = `${prefix}${command.info.usage}`;
+				const usageField = "\nExample Usage:\n```fix\n" + usage + "```";
 
-			const fields = [
-				{ name: "Category", value: category, inline: true },
-				{ name: "Aliases", value: aliases, inline: true },
-				{ name: "Description", value: command.info.description, inline: false },
-				{ name: "Usage", value: usageField, inline: false }
-			];
+				const fields = [
+					{ name: "Category", value: category, inline: true },
+					{ name: "Aliases", value: aliases, inline: true },
+					{ name: "Description", value: command.info.description, inline: false },
+					{ name: "Usage", value: usageField, inline: false }
+				];
 
-			embed.setAuthor({ name: title }).addFields(fields);
-			return await handleElement(element, isSlashCommand, { embeds: [embed], ephemeral: true });
+				embed.setAuthor({ name: title }).addFields(fields);
+				return await handleElement(element, isSlashCommand, { embeds: [embed], ephemeral: true });
+			}
 		}
 	}
 
@@ -66,7 +67,10 @@ async function run(client, element, args = []){
 	const longest = commands.reduce((long, command) => Math.max(long, command.info.name.length), 0);
 
 	// Sort everything into the correct categories
-	const categories = {};
+	interface Categories {
+		[key: string]: string[]
+	}
+	const categories: Categories = {};
 	for(const command of commands){
 		// If the user can't even run the command, don't show it
 		if(!command.info.enabled) continue;
@@ -89,21 +93,21 @@ async function run(client, element, args = []){
 	}
 
 	embed.setAuthor({ name: `Commands for:  ${user.username}`, iconURL: user.displayAvatarURL() })
-		.setDescription(`**Commands available in:** ${element.channel}\nUse \`${client.config.prefix}help {command}\` for details on a specific command.`)
+		.setDescription(`**Commands available in:** ${element.channel}\nUse \`${client.config?.prefix}help {command}\` for details on a specific command.`)
 		.addFields(embedFields);
 
 	// If the command is a slash command
 	if(isSlashCommand) return await element.reply({ embeds: [embed], ephemeral: true });
 
 	// Otherwise send a DM to the user, and inform them in the channel that they have been DMed
-	await user.send({ embeds: [embed] }).catch(e => {
+	await user.send({ embeds: [embed] }).catch(() => {
 		return;
 	});
 	await element.reply({ content: "I've sent you a DM with all of your available commands.\nIf you didn't receive one, please check your DM settings." });
 }
 
 
-const info = {
+const info: CommandInfo = {
 	name: "help",
 	altNames: ["h", "commands"],
 	description: "Displays a list of commands",
@@ -115,14 +119,14 @@ const info = {
 };
 
 
-/**
- * @name slash
- * @param {Client} client The discord client
- * @param {Boolean} [funcs] Whether to return the functions or the data
- * @returns {Object} The slash command data or functions
-**/
-function slash(client, funcs = false){
+
+function slash(client: DiscordClient, funcs: boolean = false) {
 	if(!funcs){ // We want to get the slashCommand data
+		const usableLocations = [InteractionContextType.Guild];
+		if(info.dmCompatible){
+			usableLocations.push(InteractionContextType.BotDM);
+			usableLocations.push(InteractionContextType.PrivateChannel);
+		}
 
 		/**
 		 * @name commandChoices
@@ -146,19 +150,14 @@ function slash(client, funcs = false){
 			data: new SlashCommandBuilder()
 				.setName(info.name)
 				.setDescription(info.description)
-				.setDMPermission(info.dmCompatible)
+				.setContexts(usableLocations)
 				.addStringOption(option => option.setRequired(false).setName("command").setDescription("The command to get help for").addChoices(...commandChoices()))
 		};
 		return inf;
 	}
 
 	return {
-		/**
-		 * @name execute
-		 * @param {ChatInputCommandInteraction} interaction The interaction that was created
-		 * @description The function that is called when the slash command is used
-		**/
-		execute: async function execute(interaction){
+		execute: async function execute(interaction: ChatInputCommandInteraction) {
 			const command = interaction.options.getString("command");
 
 			const args = [];

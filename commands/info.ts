@@ -1,32 +1,21 @@
-import { SlashCommandBuilder, Client, Message, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import { CommandInfo, DiscordClient } from "../types/typings.js";
+import { User, SlashCommandBuilder, ClientUser, Message, ChatInputCommandInteraction, EmbedBuilder, InteractionContextType, Role } from "discord.js";
 import { handleElement, humanTime, caseFix, grabUser } from "../src/functions.js";
 
 
-/**
- * @name info
- * @param {Client} client The discord client
- * @param {Message|ChatInputCommandInteraction} element The message or interaction that was created
- * @param {String[]} [args] The arguments passed to the command
- * @returns {Promise<void>}
-**/
-async function run(client, element, args = []){
-
-	const isSlashCommand = (element instanceof ChatInputCommandInteraction) ? true : false;
+async function run(client: DiscordClient, element: Message | ChatInputCommandInteraction, args: string[] = []) {
+	const clientUser = client.user as ClientUser;
+	const isSlashCommand = (element instanceof ChatInputCommandInteraction);
+	let user = isSlashCommand ? element.user : element.author;
 	// if(isSlashCommand) await element.deferReply({ ephemeral: true }); // Don't need deferred here
 
-	let user = isSlashCommand ? element.user : element.author;
 	let member = (element.guild) ? element.guild.members.cache.get(user.id) : undefined;
 
 	if(args[0]){
-		if(isSlashCommand){
-			user = await grabUser(client, args[0].id);
-			member = element.guild.members.cache.get(user.id);
-		} else {
-			user = await grabUser(client, args[0]);
-			if(!user) return element.reply("I couldn't find that user.");
+		user = await grabUser(client, args[0]) as User;
+		if(!user) return element.reply("I couldn't find that user.");
 
-			member = element.guild.members.cache.get(user.id);
-		}
+		member = element.guild?.members.cache.get(user.id);
 	}
 	// Date the account was created
 	const joinTime = new Date(user.createdTimestamp).toDateString().slice(4);
@@ -65,10 +54,10 @@ async function run(client, element, args = []){
 		}
 
 		if(member.roles){
-			const s = function(a, b){
+			const sortFunction = function(a: Role, b: Role) {
 				return a.position - b.position;
 			};
-			const r = [...member.roles.cache.values()].sort(s).slice(1).reverse().join(", ");
+			const r = [...member.roles.cache.values()].sort(sortFunction).slice(1).reverse().join(", ");
 			roleEmbed = { name: "Roles:", value: `\u200b${r}`, inline: false };
 		}
 
@@ -79,7 +68,7 @@ async function run(client, element, args = []){
 		.setAuthor({ name: displayName })
 		.setThumbnail(user.displayAvatarURL())
 		.setTimestamp()
-		.setFooter({ text: client.user.username, iconURL: client.user.displayAvatarURL() });
+		.setFooter({ text: clientUser.username, iconURL: clientUser.displayAvatarURL() });
 
 
 	let discrim = user.discriminator;
@@ -88,7 +77,7 @@ async function run(client, element, args = []){
 		{ name: "Username:", value: user.username, inline: true },
 		{ name: "Discrim:", value: discrim, inline: true },
 		{ name: "Discord ID:", value: user.id, inline: true },
-		{ name: "Is bot?", value: caseFix(user.bot), inline: true },
+		{ name: "Is bot?", value: caseFix(user.bot.toString()), inline: true },
 		statusEmbed,
 		playingEmbed,
 		{ name: "Joined Discord:", value: `${joinTime}, *OR*\n${joinTimeAgo} ago, *OR*\n${daysAfterLaunch} after launch`, inline: false },
@@ -100,7 +89,7 @@ async function run(client, element, args = []){
 	return await handleElement(element, isSlashCommand, { embeds: [embed], ephemeral: false });
 }
 
-const info = {
+const info: CommandInfo = {
 	name: "info",
 	altNames: ["info"],
 	description: "Gives information about a user",
@@ -112,34 +101,29 @@ const info = {
 };
 
 
-/**
- * @name slash
- * @param {Client} client The discord client
- * @param {Boolean} [funcs] Whether to return the functions or the data
- * @returns {Object} The slash command data or functions
-**/
-function slash(client, funcs = false){
+function slash(client: DiscordClient, funcs: boolean = false) {
 	if(!funcs){ // We want to get the slash command data
+		const usableLocations = [InteractionContextType.Guild];
+		if(info.dmCompatible){
+			usableLocations.push(InteractionContextType.BotDM);
+			usableLocations.push(InteractionContextType.PrivateChannel);
+		}
+
 		return {
 			data: new SlashCommandBuilder()
 				.setName(info.name)
 				.setDescription(info.description)
-				.setDMPermission(info.dmCompatible)
+				.setContexts(usableLocations)
 				.addUserOption(option => option.setRequired(false).setName("user").setDescription("The user to get information about"))
 		};
 	}
 
 	return {
-		/**
-		 * @name execute
-		 * @param {ChatInputCommandInteraction} interaction The interaction that was created
-		 * @description The function that is called when the slash command is used
-		**/
-		execute: async function execute(interaction){
+		execute: async function execute(interaction: ChatInputCommandInteraction) {
 			const args = [];
 
 			const user = interaction.options.getUser("user");
-			if(user) args.push(user);
+			if(user) args.push(user.id);
 
 			await run(client, interaction, args);
 		}

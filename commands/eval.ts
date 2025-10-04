@@ -1,24 +1,19 @@
-import { Client, Message, EmbedBuilder } from "discord.js";
+import { CommandInfo, DiscordClient } from "../types/typings.js";
+import { ClientUser, Message, EmbedBuilder, TextChannel } from "discord.js";
 import { clean } from "../src/functions.js";
 
-/**
- * @name eval
- * @param {Client} client The discord client
- * @param {Message} element The message or interaction that was created
- * @param {String[]} [args] The arguments passed to the command
- * @returns {Promise<void>}
-**/
-async function run(client, element, args = []){
+
+async function run(client: DiscordClient, element: Message, args: string[] = []) {
+	const clientUser = client.user as ClientUser;
+	const channel = element.channel as TextChannel;
 
 	if(!args) return await element.reply({ content: "You need to provide some code to evaluate!" });
 
-	let good = client.emojis.cache.get("340357918996299778");
-	if(!good) good = "👍";
-	let bad = client.emojis.cache.get("340357882606256137");
-	if(!bad) bad = "👎";
+	const good = client.emojis.cache.get("340357918996299778") || "👍";
+	const bad = client.emojis.cache.get("340357882606256137") || "👎";
 
 	const embed = new EmbedBuilder()
-		.setFooter({ text: client.user.username, iconURL: client.user.displayAvatarURL() })
+		.setFooter({ text: clientUser.username, iconURL: clientUser.displayAvatarURL() })
 		.setTimestamp();
 
 	const code = args.join(" ").replace(/\u200b/g, "\n");
@@ -36,7 +31,7 @@ async function run(client, element, args = []){
 
 			embed.addFields(field);
 
-			return await element.channel.send({ embeds: [embed] });
+			return await channel.send({ embeds: [embed] });
 		}
 
 		const fields = [
@@ -45,9 +40,9 @@ async function run(client, element, args = []){
 		];
 
 		embed.addFields(fields);
-		return await element.channel.send({ embeds: [embed] }).catch(e => console.log(e));
+		return await channel.send({ embeds: [embed] }).catch(e => console.log(e));
 	} catch (err){
-		const errMsg = await clean(client, err);
+		const errMsg = await clean(client, err as string);
 		const errString = `\`\`\`javascript\n${errMsg}\n\`\`\``;
 
 		embed.setColor(14487568);
@@ -58,7 +53,7 @@ async function run(client, element, args = []){
 
 			embed.addFields(field);
 
-			return await element.channel.send({ embeds: [embed] });
+			return await channel.send({ embeds: [embed] });
 		}
 
 		const fields = [
@@ -67,12 +62,12 @@ async function run(client, element, args = []){
 		];
 
 		embed.addFields(fields);
-		return await element.channel.send({ embeds: [embed] });
+		return await channel.send({ embeds: [embed] });
 	}
 }
 
 
-const info = {
+const info: CommandInfo = {
 	name: "eval",
 	altNames: ["e", "js"],
 	description: "Evaluates Javascript code",
@@ -84,13 +79,8 @@ const info = {
 };
 
 
-/**
- * @name slash
- * @param {Client} client The discord client
- * @param {Boolean} [funcs] Whether to return the functions or the data
- * @returns {Object} The slash command data or functions
-**/
-function slash(client, funcs = false){
+
+function slash(client: DiscordClient, funcs: boolean = false) { // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
 	// if(!funcs){ // We want to get the slash command data
 	// 	return {
 	// 		data: new SlashCommandBuilder()
@@ -101,18 +91,8 @@ function slash(client, funcs = false){
 	// }
 
 	return {
-		/**
-		 * @name execute
-		 * @param {ChatInputCommandInteraction} interaction The interaction that was created
-		 * @description The function that is called when the slash command is used
-		**/
-		execute: async function execute(interaction){
-			const user = interaction.options.getUser("user");
-
-			const args = [];
-			if(user) args.push(user);
-
-			await run(client, interaction, args);
+		execute: async function execute(interaction: Message) {
+			await run(client, interaction);
 		}
 	};
 }

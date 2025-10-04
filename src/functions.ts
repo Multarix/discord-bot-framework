@@ -1,4 +1,5 @@
-import { Client, User, Emoji, PermissionsBitField, ActionRowBuilder, Embed } from "discord.js";
+import { DiscordClient } from "../types/typings.js";
+import { User, Emoji, PermissionsBitField, Channel, GuildMember, EmbedBuilder, ChatInputCommandInteraction, Message, InteractionResponse } from "discord.js";
 
 import colors from "colors";
 
@@ -11,8 +12,9 @@ import colors from "colors";
  * @example const ord = ordinal(53);
  * console.log(ord); // 53rd
 **/
-function ordinal(num){
+function ordinal(num: number | string): string {
 	// Ordinal indicators (1st, 2nd, 3rd, 4th.. etc.)
+	if(typeof num === "string") num = parseInt(num);
 	if(isNaN(num)) return 'NaN';
 
 	const ord = num.toString();
@@ -24,17 +26,17 @@ function ordinal(num){
 }
 
 
-/**
- * @typedef {object} timeObject
- * @property {string} day The day of the week
- * @property {string} shortDay The day of the week in short form
- * @property {string} month The month of the year
- * @property {string} shortMonth The month of the year in short form
- * @property {string} date The date in the format `DD/MM/YYYY`
- * @property {string} fullDate The date in the format `DDth of Month, YYYY`
- * @property {string} time The time in the format `HH:MM:SS`
- * @property {string} ISO The time in the format `YYYY-MM-DDTHH:MM:SS.MSSZ`
-**/
+interface TimeObject {
+	day: string;
+	shortDay: string;
+	month: string;
+	shortMonth: string;
+	date: string;
+	fullDate: string;
+	time: string;
+	ISO: string;
+}
+
 /**
  * @name timeFormat
  * @param {Date} [dateTime] The date object to be used, defaults to the current time
@@ -51,7 +53,7 @@ function ordinal(num){
  * @example const time = timeFormat();
  * console.log(time.fullDate); // 25th of August, 2023
 **/
-function timeFormat(timeZone = "", dateTime = new Date()){
+function timeFormat(timeZone = "", dateTime: Date = new Date()): TimeObject {
 	if(timeZone) dateTime = new Date(dateTime.toLocaleString("en-US", { timeZone }));
 
 	const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -106,12 +108,10 @@ function timeFormat(timeZone = "", dateTime = new Date()){
 }
 
 
-/**
- * @typedef {("good" | "warn" | "error" | "info" | "misc" | "normal")} outputType
-**/
+type OutputType = ("good" | "warn" | "error" | "info" | "misc" | "normal");
 /**
  * @name output
- * @param {Client} client The discord client object thingo
+ * @param {DiscordClient} client The discord client object thingo
  * @param {outputType} type The type of message
  * @param {any} message The item to be logged
  * @returns {void}
@@ -119,32 +119,32 @@ function timeFormat(timeZone = "", dateTime = new Date()){
  * @example output(client, "normal", "This is a message");
  * // [2020-12-31 | 11:59:59] This is a message
 **/
-function output(client, type, message){
-	const curTime = timeFormat(client.config.timezone);
+function output(client: DiscordClient, type: OutputType, message: unknown): void {
+	const curTime = timeFormat(client.config?.timezone);
 	switch(type.toLowerCase()){
 		case "good":
-			console.log(`[${colors.gray(`${curTime.date} | ${curTime.time}`)}] ${colors.green(message)}`);
+			console.log(`[${colors.gray(`${curTime.date} | ${curTime.time}`)}] ${colors.green(message as string)}`);
 			break;
 
 		case "warn":
-			console.log(`[${colors.gray(`${curTime.date} | ${curTime.time}`)}] ${colors.yellow(message)}`);
+			console.log(`[${colors.gray(`${curTime.date} | ${curTime.time}`)}] ${colors.yellow(message as string)}`);
 			break;
 
 		case "error":
-			console.log(`[${colors.gray(`${curTime.date} | ${curTime.time}`)}] ${colors.red(message)}`);
+			console.log(`[${colors.gray(`${curTime.date} | ${curTime.time}`)}] ${colors.red(message as string)}`);
 			break;
 
 		case "info":
-			console.log(`[${colors.gray(`${curTime.date} | ${curTime.time}`)}] ${colors.magenta(message)}`);
+			console.log(`[${colors.gray(`${curTime.date} | ${curTime.time}`)}] ${colors.magenta(message as string)}`);
 			break;
 
 		case "misc":
-			console.log(`[${colors.gray(`${curTime.date} | ${curTime.time}`)}] ${colors.blue(message)}`);
+			console.log(`[${colors.gray(`${curTime.date} | ${curTime.time}`)}] ${colors.blue(message as string)}`);
 			break;
 
 		case "normal":	// fallsthrough
 		default:
-			console.log(`[${colors.gray(`${curTime.date} | ${curTime.time}`)}] ${colors.white(message)}`);
+			console.log(`[${colors.gray(`${curTime.date} | ${curTime.time}`)}] ${colors.white(message as string)}`);
 			break;
 	}
 }
@@ -152,24 +152,25 @@ function output(client, type, message){
 
 /**
  * @name permLevel
- * @param {Client} client The client object
+ * @param {DiscordClient} client The client object
  * @param {User} user A discord user object
  * @param {Channel} channel A discord channel object
  * @returns {number}
  * @description Returns the permission level of the user
  * @example const permLevel = client.permLevel(client, message);
 **/
-function permLevel(client, user, channel){
+function permLevel(client: DiscordClient, user: User, channel: Channel): number {
 	let perm = 0;
 
 	const DM = 1;
 	const GroupDM = 3;
 	if(channel.type === DM || channel.type === GroupDM) return perm;
 
-	const personCanDelete = channel.permissionsFor(channel.guild.members.cache.get(user.id)).has(PermissionsBitField.Flags.ManageMessages);
-	const personCanKick = channel.permissionsFor(channel.guild.members.cache.get(user.id)).has(PermissionsBitField.Flags.KickMembers);
-	const personCanBan = channel.permissionsFor(channel.guild.members.cache.get(user.id)).has(PermissionsBitField.Flags.BanMembers);
-	const personIsAdmin = channel.permissionsFor(channel.guild.members.cache.get(user.id)).has(PermissionsBitField.Flags.Administrator);
+	const member = channel.guild.members.cache.get(user.id) as GuildMember;
+	const personCanDelete = channel.permissionsFor(member).has(PermissionsBitField.Flags.ManageMessages);
+	const personCanKick = channel.permissionsFor(member).has(PermissionsBitField.Flags.KickMembers);
+	const personCanBan = channel.permissionsFor(member).has(PermissionsBitField.Flags.BanMembers);
+	const personIsAdmin = channel.permissionsFor(member).has(PermissionsBitField.Flags.Administrator);
 
 	if(personCanDelete) perm = 2;
 	if(personCanKick) perm = 4;
@@ -177,7 +178,7 @@ function permLevel(client, user, channel){
 	if(personIsAdmin) perm = 8;
 
 	if(user.id === channel.guild.ownerId) perm = 10;
-	if(user.id === client.config.ownerID) perm = 100;
+	if(user.id === client.config?.ownerID) perm = 100;
 
 	return perm;
 }
@@ -185,13 +186,13 @@ function permLevel(client, user, channel){
 
 /**
  * @name clean
- * @param {Client} client The client object
- * @param {string |} text The text to be cleaned
+ * @param {DiscordClient} client The client object
+ * @param {string} text The text to be cleaned
  * @returns {Promise<string>}
  * @description Cleans the text of any sensitive information
  * @example const cleanText = clean(client, "some text");
 **/
-async function clean(client, text){
+async function clean(client: DiscordClient, text: string): Promise<string> {
 	if(text && text.constructor.name == "Promise") text = await text;
 	if(typeof text !== "string"){
 		const imp = await import("util");
@@ -199,8 +200,8 @@ async function clean(client, text){
 	}
 	text = text.toString()
 		.replace(/`/g, "`" + String.fromCharCode(8203))
-		.replace(/@/g, "@" + String.fromCharCode(8203))
-		.replace(client.token, "https://i.imgur.com/cGIay9e.png");
+		.replace(/@/g, "@" + String.fromCharCode(8203));
+	if(client.token) text.replace(client.token.toString(), "https://i.imgur.com/cGIay9e.png");
 
 	return text;
 }
@@ -208,17 +209,18 @@ async function clean(client, text){
 
 /**
  * @name grabChannel
+ * @param {DiscordClient} client
  * @param {string} channelID The ID of the channel to be grabbed
  * @returns {Promise<Channel | undefined>} The channel object or undefined if the channel is not found
  * @description Grabs a channel object from the cache or fetches it from the API
  * @example const channel = grabChannel(client, "1234567890");
 **/
-async function grabChannel(client, channelID){
+async function grabChannel(client: DiscordClient, channelID: string): Promise<Channel | undefined> {
 	if(!channelID) return undefined;
 	if(channelID.startsWith("<#") && channelID.endsWith(">")) channelID = channelID.slice(2, -1);
 	if(client.channels.cache.get(channelID)) return client.channels.cache.get(channelID);
 
-	await client.channels.fetch(channelID).catch(e => {
+	await client.channels.fetch(channelID).catch(() => {
 		return undefined;
 	});
 
@@ -228,20 +230,20 @@ async function grabChannel(client, channelID){
 
 /**
  * @name grabUser
- * @param {Client} client The client object
+ * @param {DiscordClient} client The client object
  * @param {string} userID The ID of the user to be grabbed
  * @returns {Promise<User | undefined>} The user object or undefined if the user is not found
  * @description Grabs a user object from the cache or fetches it from the API
  * @example const user = grabUser(client, "1234567890");
 **/
-async function grabUser(client, userID){
+async function grabUser(client: DiscordClient, userID: string): Promise<User | undefined> {
 	if(!userID) return undefined;
 	if(userID.startsWith("<@") && userID.endsWith(">")) userID = userID.slice(2, -1);
 	if(userID.startsWith("!")) userID = userID.slice(1);
 
 	if(client.users.cache.get(userID)) return client.users.cache.get(userID);
 
-	await client.users.fetch(userID).catch(e => {
+	await client.users.fetch(userID).catch(() => {
 		return undefined;
 	});
 
@@ -251,13 +253,13 @@ async function grabUser(client, userID){
 
 /**
  * @name grabEmoji
- * @param {Client} client The client object
+ * @param {DiscordClient} client The client object
  * @param {string} emojiID The ID of the emoji to be grabbed
  * @returns {Promise<Emoji | undefined>} The emoji object or undefined if the emoji is not found
  * @description Grabs a emoji object from the cache via it's ID
  * @example const emoji = grabEmoji("1234567890");
 **/
-async function grabEmoji(client, emojiID){
+async function grabEmoji(client: DiscordClient, emojiID: string): Promise<Emoji | undefined> {
 	if(!emojiID) return undefined;
 	if(emojiID.startsWith("<a:") && emojiID.endsWith(">")) emojiID = emojiID.slice(3, -1);	// Animated
 	if(emojiID.startsWith("<:") && emojiID.endsWith(">")) emojiID = emojiID.slice(2, -1);	// Static
@@ -269,13 +271,13 @@ async function grabEmoji(client, emojiID){
 }
 
 
-/**
- * @typedef {object} messageData
- * @property {string} content The content of the message
- * @property {Embed[]} embeds An array of message embeds
- * @property {ActionRowBuilder[]} components An array of ActionRowBuilders
- * @property {bool} ephemeral Whether or not the message should be ephemeral
- **/
+interface MessageData {
+	content?: string;
+	embeds?: EmbedBuilder[];
+	// components?: ActionRowBuilder[]
+	ephemeral?: boolean;
+}
+
 /**
  * @name handleElement
  * @param {Message|ChatInputCommandInteraction} element The message or interaction that was created
@@ -283,21 +285,21 @@ async function grabEmoji(client, emojiID){
  * @param {messageData} messsgeData The data to send
  * @returns {Message|InteractionResponse}
 **/
-async function handleElement(element, slashCommand, messageData, deferred = false){
+async function handleElement(element: Message | ChatInputCommandInteraction, slashCommand: boolean, messageData: MessageData, deferred = false): Promise<Message<boolean> | InteractionResponse<boolean>> {
 
-	if(!messageData?.content && !messageData?.embeds) throw new Error().name("NoContentError").message("No content or embeds were provided");
+	if(!messageData?.content && !messageData?.embeds) throw new Error("No content or embeds were provided");
 
-	const data = {};
+	const data: MessageData = {};
 	if(messageData.content)	data.content = messageData.content.toString();
 	if(messageData.embeds) data.embeds = messageData.embeds;
-	if(messageData.components) data.components = messageData.components;
+	// if(messageData.components) data.components = messageData.components;
 	if(slashCommand && messageData.ephemeral && !deferred) data.ephemeral = messageData.ephemeral;
 
 	let reply;
-	if(deferred){
-		reply = await element.editReply(data);
-	} else {
+	if(element instanceof Message){
 		reply = await element.reply(data);
+	} else {
+		reply = await element.editReply(data);
 	}
 
 	return reply;
@@ -312,7 +314,7 @@ async function handleElement(element, slashCommand, messageData, deferred = fals
  * @example const fixed = caseFix("this is a StrinG. thE capitaLIZaTion iS wrOng.");
  * console.log(fixed); // This is a string. The capitalization is wrong.
 **/
-function caseFix(string){
+function caseFix(string: string): string {
 	string = string.toString();
 
 	const stringArray = string.toLowerCase().split(/\s+/g);
@@ -348,7 +350,7 @@ function caseFix(string){
  * @example const format = humanTime(951000, "\\m minutes \\s seconds");
  * console.log(format); // 15 minutes 51 seconds
 **/
-function humanTime(ms, format = "\\h hours \\m minutes \\s seconds"){
+function humanTime(ms: number, format: string = "\\h hours \\m minutes \\s seconds"): string {
 
 	if(!format) return `${ms}ms`;
 
@@ -375,34 +377,34 @@ function humanTime(ms, format = "\\h hours \\m minutes \\s seconds"){
 	if(format.includes("\\M")) days = baseDays % 30;									// Months
 	if(format.includes("\\y") || format.includes("\\Y")) months = months % 12;			// Years
 
-	const duration = format.replace(/\\S/, milliseconds)
-		.replace(/\\s/g, seconds)
-		.replace(/\\m/g, minutes)
-		.replace(/\\h/g, hours)
-		.replace(/\\H/g, hours)
-		.replace(/\\d/g, days)
-		.replace(/\\D/g, days)
-		.replace(/\\M/g, months)
-		.replace(/\\y/g, years)
-		.replace(/\\Y/g, years);
+	const duration = format.replace(/\\S/, milliseconds.toString())
+		.replace(/\\s/g, seconds.toString())
+		.replace(/\\m/g, minutes.toString())
+		.replace(/\\h/g, hours.toString())
+		.replace(/\\H/g, hours.toString())
+		.replace(/\\d/g, days.toString())
+		.replace(/\\D/g, days.toString())
+		.replace(/\\M/g, months.toString())
+		.replace(/\\y/g, years.toString())
+		.replace(/\\Y/g, years.toString());
 
 	return duration;
 }
 
 
-/**
- * @typedef {(number|string)} numberLike
-**/
+type NumberLike = (number | string);
 /**
  * @name randomNumber
  * @param {numberLike} min The minimum number that should be returned
  * @param {numberLike} max The maximum number that should be returned
  * @returns {number} A random number between the min and max
 **/
-function randomNumber(min, max){
+function randomNumber(min: NumberLike, max: NumberLike): number {
+	if(typeof min === "string") min = parseInt(min);
+	if(typeof max === "string") max = parseInt(max);
 
-	if(isNaN(parseInt(min))) throw new Error("'min' must be a number or a number-like string");
-	if(isNaN(parseInt(max))) throw new Error("'max' must be a number or a number-like string");
+	if(isNaN(min)) throw new Error("'min' must be a number or a number-like string");
+	if(isNaN(max)) throw new Error("'max' must be a number or a number-like string");
 	if(min >= max) throw new Error("'min' must be less than 'max'");
 
 	return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -417,7 +419,7 @@ function randomNumber(min, max){
  * @description Compares two strings and returns the Levenshtein distance between them
  * Code reference: https://www.tutorialspoint.com/levenshtein-distance-in-javascript
 **/
-function compareStrings(str1, str2){
+function compareStrings(str1: string, str2: string): number {
 	// Basic typechecking
 	if(typeof str1 !== "string") throw new TypeError("'str1' must be a string!");
 	if(typeof str2 !== "string") throw new TypeError("'str2' must be a string!");
@@ -450,15 +452,15 @@ function compareStrings(str1, str2){
 
 /**
  * @name findSmallestDistance
- * @param {string} a
+ * @param {string} baseString
  * @param {string[]} strings
  * @returns {object} The best match
  * @description Finds the best match for a string in an array of strings
 **/
-function findSmallestDistance(a, strings){
-	const bestMatch = { score: Infinity, item: null };
+function findSmallestDistance(baseString: string, strings: string[]): object {
+	const bestMatch = { score: Infinity, item: "" };
 	for(const b of strings){
-		const score = compareStrings(a, b) / Math.max(a.length, b.length);
+		const score = compareStrings(baseString, b) / Math.max(baseString.length, b.length);
 		if(score === 0){
 			bestMatch.score = score;
 			bestMatch.item = b;

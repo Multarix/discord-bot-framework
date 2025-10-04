@@ -1,28 +1,17 @@
 import js from "@eslint/js";
 import globals from "globals";
-import json from "@eslint/json";
-import { defineConfig } from "eslint/config";
+import tseslint from "typescript-eslint";
 import stylistic from "@stylistic/eslint-plugin";
+import { defineConfig } from "eslint/config";
 
 
 export default defineConfig([
+	tseslint.configs.recommended,
 	{
-		files: ["**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}"],
+		files: ["**/*.{ts,mts,cts}"],
 		plugins: {
-			js,
 			'@stylistic': stylistic
 		},
-		languageOptions: {
-			globals: {
-				React: "readonly"
-			},
-			parserOptions: {
-				ecmaFeatures: {
-					jsx: true
-				}
-			}
-		},
-		extends: ["ts/recommended"],
 		rules: {
 			"@stylistic/brace-style": ["error", "1tbs", { "allowSingleLine": false }],
 			"use-isnan": "error",
@@ -37,10 +26,10 @@ export default defineConfig([
 			"no-console": "off",
 			"no-empty-function": "error",
 			"@stylistic/no-floating-decimal": "error",
-			"@stylistic/no-multi-spaces": "error",
 			"@stylistic/no-multiple-empty-lines": ["error", { "max": 3, "maxEOF": 1, "maxBOF": 0 }],
 			"@stylistic/no-trailing-spaces": ["error"],
-			"no-unused-vars": "off",
+			"no-unused-vars": ["error", { "varsIgnorePattern": "^_" }],
+			"@typescript-eslint/no-unused-vars": ["error", { "varsIgnorePattern": "^_" }],
 			"no-var": "error",
 			"@stylistic/object-curly-spacing": ["error", "always"],
 			"prefer-const": "error",
@@ -50,7 +39,8 @@ export default defineConfig([
 			"@stylistic/spaced-comment": "error",
 			"no-lonely-if": "error",
 			"no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
-			"@stylistic/space-before-blocks": ["error", { "functions": "never", "keywords": "never", "classes": "always" }],
+			"@stylistic/type-annotation-spacing": ["error", { "before": false, "after": true }],
+			"@stylistic/space-before-blocks": ["error", { "functions": "always", "keywords": "never", "classes": "always" }],
 			"@stylistic/space-before-function-paren": ["error", { "anonymous": "never", "named": "never", "asyncArrow": "always" }],
 			"@stylistic/keyword-spacing": ["error", {
 				"before": true,
@@ -72,8 +62,7 @@ export default defineConfig([
 			"@stylistic/semi": ["error", "always"],
 			"@stylistic/semi-style": ["error", "last"]
 		}
-
 	},
-	{ files: ["**/*.{js,jsx}"], languageOptions: { globals: { ...globals.browser }, sourceType: "module" } },
-	{ files: ["**/*.json"], plugins: { json }, language: "json/json", extends: ["json/recommended"] }
+	{ files: ["**/*.{mts,cjs,ts}"], plugins: { js }, extends: ["js/recommended"] },
+	{ files: ["**/*.{js,mjs,cjs,ts}"], languageOptions: { globals: globals.node } }
 ]);

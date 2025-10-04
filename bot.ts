@@ -1,6 +1,8 @@
+import { Config, SlashData, Command, DiscordClient } from "./types/typings.js";
+
 import fs from "fs";
 
-import { Client, GatewayIntentBits, Partials } from "discord.js";
+import { GatewayIntentBits, Partials, MessageMentionOptions } from "discord.js";
 import colors from "colors";
 
 import { output } from "./src/functions.js";
@@ -12,49 +14,25 @@ import { dirname } from 'path';
 import dotenv from "dotenv";
 dotenv.config();
 
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-
-// Yes Node, I know I'm using an experimental feature, stop telling me about it
-const originalEmit = process.emit;
-process.emit = function(name, data, ...args){
-	if(name === `warning` && typeof data === `object` && data.name === `ExperimentalWarning`){
-		return false;
-	}
-	return originalEmit.apply(process, arguments);
-};
 
 if(!process.env.token) throw new Error("No token was supplied. please supply a token and restart.");
 if(!process.env.timezone) throw new Error("No Timezone was supplied. Please supply a timezone and restart.");
 
-const dataFile = "./data/posted.json";
-console.log("Checking for data file...");
-if(!fs.existsSync(dataFile)){
-	if(!fs.existsSync("./data")){
-		fs.mkdir("./data");
-		console.log("Creating data folder...");
-	}
-
-	const initialData = `{"dataType":"Map","value":[]}`;
-	fs.writeFileSync(dataFile, initialData, "utf8");
-	console.log(`Creating ${dataFile}`);
-}
 
 // Load the config
-const config = {
+const config: Config = {
 	prefix: process.env.prefix || "!", // Default config
-	ownerID: process.env.ownerID || 1, // Sets to Clyde if not specified
-	weatherLoc: process.env.weatherLoc || "Paris", // Random location idgaf.
+	ownerID: process.env.ownerID || "1", // Sets to Clyde if not specified
 	token: process.env.token,
-	bookUpdatesChannel: process.env.bookUpdatesChannel,
-	bookUpdateURL: process.env.bookUpdateURL,
 	timezone: process.env.timezone
 };
 
+
 console.log(`Setting prefix to ${config.prefix}`);
 console.log(`Setting ownerID to ${config.ownerID}`);
-console.log(`Setting weatherLoc to ${config.weatherLoc}`);
 console.log(`Setting timezone to ${config.timezone}`);
 
 // Handle the unhandled things
@@ -68,15 +46,13 @@ process.on("unhandledRejection", (err) => {
 	process.exit(1); // Hopefully fixes EAI_Again?
 });
 
-
-
 console.log("Starting Bot...");
 
 const intentFlags = [
 	GatewayIntentBits.Guilds,
 	GatewayIntentBits.GuildMembers,
+	GatewayIntentBits.GuildExpressions,
 	GatewayIntentBits.GuildPresences,
-	GatewayIntentBits.GuildEmojisAndStickers,
 	GatewayIntentBits.GuildMessages,
 	GatewayIntentBits.GuildMessageReactions,
 	GatewayIntentBits.DirectMessages,
@@ -84,16 +60,16 @@ const intentFlags = [
 	GatewayIntentBits.MessageContent
 ];
 
-const client = new Client({
-	disableEveryone: true,
+// const allowedMentions = Discord
+const allowedMentions = { parse: ["users", "roles"], repliedUser: true, roles: [], users: [] } as MessageMentionOptions;
+
+const client = new DiscordClient({
+	allowedMentions: allowedMentions,
 	intents: intentFlags,
-	partials: [Partials.Message, Partials.Reaction]
+	partials: [Partials.Message]
 });
 
 client.config = config;
-client.commands = new Map();
-client.altNames = new Map();
-client.slashCommands = [];
 
 /**
  * @name main
@@ -140,7 +116,7 @@ const main = async () => {
 	for(const file of commandList){
 		try {
 			// Try loading the command file
-			const command = await import(`./commands/${file}`);
+			const command: Command = await import(`./commands/${file}`);
 
 			// Set the command file name for reloading later
 			command.info.fileName = file;
@@ -149,7 +125,8 @@ const main = async () => {
 			client.commands.set(command.info.name, command);
 			command.info.altNames.forEach(alias => client.altNames.set(alias, command.info.name));
 			// If the command is a slash command
-			if(command.slash?.(client)?.data && command.info.enabled) client.slashCommands.push(command);
+			const clientSlash = command.slash(client, false) as SlashData;
+			if(clientSlash?.data && command.info.enabled) client.slashCommands.push(command);
 
 			const paddedName = command.info.name.padEnd(longestName, " ");
 			const disableString = command.info.enabled ? "" : ` ${colors.red("(disabled)")}`;
@@ -161,7 +138,7 @@ const main = async () => {
 		}
 	}
 
-	await client.login(client.config.token);
+	await client.login(client.config?.token);
 	// cronEvents(client);
 };
 

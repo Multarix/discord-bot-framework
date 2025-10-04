@@ -1,18 +1,17 @@
-import { Client } from "discord.js";
+import { Interaction, TextBasedChannel } from "discord.js";
 import { output, permLevel } from "../src/functions.js";
+import { DiscordClient, ExecuteData } from "../types/typings.js";
 
 
 /**
  * @name interactionCreate
- * @param {Client} client The discord client
+ * @param {DiscordClient} client The discord client
  * @param {Interaction} interaction The interaction that was created
  * @description Emitted whenever an interaction is created.
- * @returns {Promise<void>}
 **/
-async function run(client, interaction){
+async function run(client: DiscordClient, interaction: Interaction) {
 
 	if(!interaction.isChatInputCommand()) return;
-
 
 	const command = client.commands.get(interaction.commandName);
 	if(!command){
@@ -24,11 +23,12 @@ async function run(client, interaction){
 	if(!command.info.enabled) return interaction.reply({ content: "Oops! That command is currently disabled!", ephemeral: true });
 
 	// Check if the user has permission to run the command
-	const userPermLevel = permLevel(client, interaction.user, interaction.channel);
+	const userPermLevel = permLevel(client, interaction.user, interaction.channel as TextBasedChannel);
 	if(command.info.permLevel > userPermLevel) return interaction.reply({ content: "Oops! You don't have permission to use that command!", ephemeral: true });
 
 	try {
-		await command.slash(client, true).execute(interaction);
+		const executeData = command.slash(client, true) as ExecuteData;
+		await executeData.execute(interaction);
 	} catch (e){
 		output(client, "error", e);
 		let followUp = false;

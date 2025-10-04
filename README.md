@@ -25,11 +25,11 @@ timezone=Etc/UTC
 FORCE_COLOR=1
 ```
 
-- prefix: The symbols(s) required to be prefixed to a command in order for it to be seen as a command (eg: -help)
-- ownerID: Your discord ID, you can find this by turning on developer options in discord, if left blank, it sets it to Clyde
-- token: The token to log your bot in
-- timezone: This is simply for logging purposes. I recommend just leaving at UTC time.
-- FORCE_COLOR: Required for colors to walk in a docker container (iunno)
+- **prefix**: The symbols(s) required to be prefixed to a command in order for it to be seen as a command (eg: -help)
+- **ownerID**: Your discord ID, you can find this by turning on developer options in discord, if left blank, it sets it to Clyde
+- **token**: The token to log your bot in
+- **timezone**: This is simply for logging purposes. I recommend just leaving at UTC time.
+- **FORCE_COLOR**: Required for colors to walk in a docker container (iunno)
 
 ## Step 3
 Run `npm run start`. The bot should start up, enjoy.
